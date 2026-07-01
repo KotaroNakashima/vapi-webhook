@@ -25,97 +25,62 @@ def health_check():
 async def vapi_webhook(request: Request):
     data = await request.json()
 
-    intent = data.get("intent", "unknown")
+    intent = data.get("intent", "")
     summary = data.get("summary", "")
-
-    caller_number = (
-        data.get("caller_number")
-        or data.get("customer", {}).get("number")
-        or data.get("phoneNumber")
-        or data.get("from")
-    )
-
     name = data.get("name", "")
     party_size = data.get("party_size", "")
     reservation_date = data.get("reservation_date", "")
     reservation_time = data.get("reservation_time", "")
-    allergies = data.get("allergies", "")
-    special_request = data.get("special_request", "")
-
-    sms_sid = None
+    caller_number = data.get("caller_number")
 
     try:
+        sms_sid = None
+
         if intent == "reservation" and caller_number:
-            sms_body = """Thank you for contacting Sakura Omakase NYC.
+            client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+            sms = client.messages.create(
+                body="""Thank you for contacting Sakura Omakase NYC.
 
 Your reservation request has been received.
 
-Reserve or manage your booking here:
+Reserve your table here:
 https://www.opentable.com/xxxx
 
-We look forward to welcoming you."""
-
-            client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-            sms = client.messages.create(
-                body=sms_body,
+We look forward to welcoming you.""",
                 from_=TWILIO_PHONE_NUMBER,
                 to=caller_number,
             )
+
             sms_sid = sms.sid
-
-        email_subject = f"Sakura Omakase NYC Inquiry: {intent}"
-
-        email_body = f"""
-New guest request received.
-
-Intent:
-{intent}
-
-Summary:
-{summary}
-
-Guest Name:
-{name}
-
-Party Size:
-{party_size}
-
-Reservation Date:
-{reservation_date}
-
-Reservation Time:
-{reservation_time}
-
-Allergies:
-{allergies}
-
-Special Request:
-{special_request}
-
-Caller Number:
-{caller_number}
-"""
 
         resend.Emails.send({
             "from": "Sakura Omakase <onboarding@resend.dev>",
             "to": [OWNER_EMAIL],
-            "subject": email_subject,
-            "text": email_body,
+            "subject": f"Sakura Omakase NYC - {intent}",
+            "text": f"""
+New reservation request
+
+Name: {name}
+Party Size: {party_size}
+Date: {reservation_date}
+Time: {reservation_time}
+Phone: {caller_number}
+
+Summary:
+{summary}
+""",
         })
 
         return {
             "success": True,
-            "message": "Reservation request submitted successfully.",
-            "intent": intent,
-            "sms_sent": bool(sms_sid),
-            "sms_sid": sms_sid,
-            "owner_notified": True,
+            "message": "Request submitted successfully.",
         }
 
     except Exception as e:
-        print("ERROR:", str(e))
+        print(e)
+
         return {
             "success": False,
-            "message": "Failed to submit reservation request.",
-            "error": str(e),
+            "message": str(e),
         }

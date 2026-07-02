@@ -15,7 +15,7 @@ TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 OWNER_EMAIL = os.getenv("OWNER_EMAIL", "kiimigu4@gmail.com")
-MAKE_WEBHOOK_URL = os.getenv("MAKE_WEBHOOK_URL")
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 
 resend.api_key = RESEND_API_KEY
 
@@ -44,14 +44,14 @@ async def vapi_webhook(request: Request):
     email_status = "not_sent"
     errors = []
 
-    # Send data to Make
-    if MAKE_WEBHOOK_URL:
+    # Send data to n8n
+    if N8N_WEBHOOK_URL:
         try:
-            requests.post(MAKE_WEBHOOK_URL, json=data, timeout=10)
-            print("MAKE STATUS: sent")
+            requests.post(N8N_WEBHOOK_URL, json=data, timeout=10)
+            print("N8N STATUS: sent")
         except Exception as e:
-            errors.append(f"Make error: {str(e)}")
-            print("MAKE ERROR:", str(e))
+            errors.append(f"n8n error: {str(e)}")
+            print("N8N ERROR:", str(e))
 
     # Send SMS to caller
     if caller_number:
